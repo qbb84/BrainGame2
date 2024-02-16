@@ -3,3 +3,6 @@ version: '${project.version}'
 main: me.qbb84.braingame2.BrainGame2
 api-version: '1.20'
 author: qbb84
+commands:
+  dualnback:
+  braingame:

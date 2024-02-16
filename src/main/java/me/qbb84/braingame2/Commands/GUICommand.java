@@ -17,6 +17,8 @@ public class GUICommand implements CommandExecutor {
         if (sender instanceof Player && s.equalsIgnoreCase("braingame")) {
             Player player = (Player) sender;
             GameManager.getInstance().openInventory(player);
+
+            player.sendMessage("working!");
             return false;
         }
 
