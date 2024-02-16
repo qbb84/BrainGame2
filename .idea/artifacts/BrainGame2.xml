@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="BrainGame2">
+    <output-path>$PROJECT_DIR$/../1.20 test server/plugins</output-path>
+    <root id="archive" name="BrainGame2.jar">
+      <element id="file-copy" path="$PROJECT_DIR$/src/main/resources/plugin.yml" />
+      <element id="module-output" name="BrainGame2" />
+    </root>
+  </artifact>
+</component>
