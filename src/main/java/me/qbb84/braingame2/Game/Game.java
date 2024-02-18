@@ -13,6 +13,8 @@ public abstract sealed class Game<T extends Game<?>> implements GameData permits
     public static LinkedHashMap<String, Game<?>> gameCollection;
     public static LinkedList<InventoryItems> inventoryItems;
 
+    private T t;
+
     static {
         gameCollection = new LinkedHashMap<>();
         inventoryItems = new LinkedList<>();
@@ -37,4 +39,7 @@ public abstract sealed class Game<T extends Game<?>> implements GameData permits
 
     public abstract String commandName();
 
+    public T getClassType() {
+        return t;
+    }
 }

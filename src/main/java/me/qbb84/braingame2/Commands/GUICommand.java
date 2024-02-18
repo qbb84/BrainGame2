@@ -14,8 +14,7 @@ public class GUICommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String s,  String[] strings) {
 
-        if (sender instanceof Player && s.equalsIgnoreCase("braingame")) {
-            Player player = (Player) sender;
+        if (sender instanceof Player player && s.equalsIgnoreCase("braingame")) {
             GameManager.getInstance().openInventory(player);
 
             player.sendMessage("working!");

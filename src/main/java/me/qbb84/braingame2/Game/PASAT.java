@@ -9,7 +9,7 @@ public final class PASAT extends Game<PASAT> {
 
 
     public PASAT() {
-            super(Color.to("PASAT"), true, new InventoryItems("PASAT", Material.COMPASS, Color.to("&6Click to Play!")));
+        super(Color.to("PASAT"), true, new InventoryItems("PASAT", Material.COMPASS, Color.to("&6Click to Play!")));
     }
 
     @Override
