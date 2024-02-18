@@ -14,6 +14,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class CustomInventory {
 
@@ -23,12 +24,21 @@ public class CustomInventory {
     public static final String exponent = Color.to("&5" + expo);
 
     private static final Integer[] GUIExclusion = {
-                    4,
+            4,
             11, 12, 13, 14, 15,
             20, 21, 22, 23, 24,
             29, 30, 31, 32, 33,
-                    40,
+            40,
     };
+
+    private static final Integer[] snakeAnimation = {
+            11,
+            20,
+            29, 30, 32, 33,
+            24, 15
+    };
+
+    private int snakeIndex = 0;
 
     private static final ArrayList<Integer> exclusionList = new ArrayList(Arrays.asList(GUIExclusion));
 
@@ -39,7 +49,20 @@ public class CustomInventory {
         new BukkitRunnable() {
             @Override
             public void run() {
+
                 updateInventoryContents(inventory);
+
+                if (snakeIndex > 0) {
+                    inventory.setItem(snakeAnimation[snakeIndex - 1], new ItemStack(Material.AIR));
+                }
+
+                for (int i = 0; i < snakeAnimation.length; i++) {
+                    int currentPoint = (snakeIndex + i) % snakeAnimation.length;
+                    inventory.setItem(snakeAnimation[currentPoint], getSnakeItemAtPosition(i));
+                }
+
+                snakeIndex = (snakeIndex + 1) % snakeAnimation.length;
+
             }
         }.runTaskTimerAsynchronously(BrainGame2.getPlugin(), 0, 20);
 
@@ -54,7 +77,10 @@ public class CustomInventory {
         int centerY = inventory.getSize() / 2;
 
         long currentTime = System.currentTimeMillis();
+
+
         for (int i = 0; i < inventory.getSize(); i++) {
+
             if (exclusionList.contains(i)) continue;
 
             int distance = Math.abs(centerX - i) + Math.abs(centerY - i);
@@ -99,8 +125,10 @@ public class CustomInventory {
     }
 
     private void setInventoryContents(Inventory inventory) {
-        if (Game.inventoryItems.size() > 9 ) {
-            Bukkit.getServer().getConsoleSender().sendMessage("Inventory items is > 9. Item overflowed will not be added.");
+        if (Game.inventoryItems.size() > 9) {
+            Bukkit.getServer().getConsoleSender().sendMessage("Inventory items is > 9. Item overflowed will not be " +
+                    "added.");
+            return;
         }
         var row1 = 12;
         var row2 = 21;
@@ -111,7 +139,7 @@ public class CustomInventory {
             if (i < 3) {
                 inventory.setItem(row1, Game.inventoryItems.get(i).getCreatedItem());
                 row1++;
-            } else if (i > 3) {
+            } else if (i <= 7) {
                 inventory.setItem(row2, Game.inventoryItems.get(i).getCreatedItem());
                 row2++;
             } else {
@@ -119,5 +147,27 @@ public class CustomInventory {
                 row3++;
             }
         }
+    }
+
+    private ItemStack getSnakeItemAtPosition(int position) {
+        if (position == 0) {
+            return getSnakeHeadItem();
+        } else if (position == snakeAnimation.length - 1) {
+            return getSnakeTailItem();
+        } else {
+            return getSnakeBodyItem();
+        }
+    }
+
+    private ItemStack getSnakeHeadItem() {
+        return new ItemStack(Material.GREEN_STAINED_GLASS_PANE);
+    }
+
+    private ItemStack getSnakeBodyItem() {
+        return new ItemStack(Material.AIR);
+    }
+
+    private ItemStack getSnakeTailItem() {
+        return new ItemStack(Material.GREEN_STAINED_GLASS_PANE);
     }
 }

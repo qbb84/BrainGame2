@@ -4,6 +4,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 public class InventoryCountdown {
 
@@ -18,17 +19,17 @@ public class InventoryCountdown {
         return INSTANCE;
     }
 
-    public void updateInventory(Player player, Inventory inventory, int seconds) {
+    public void updateInventory(@NotNull Inventory inventory, int seconds) {
         inventory.clear();
 
         switch (seconds) {
             case 3:
                 addNumberGlassPanes(inventory,
-                        " ##### \n     # \n ##### \n     # \n ##### ", seconds);  // Glass panes for number 3
+                        " #### \n     # \n #### \n     # \n #### ", seconds);  // Glass panes for number 3
                 break;
             case 2:
                 addNumberGlassPanes(inventory,
-                        " ##### \n #     \n ##### \n     # \n ##### ", seconds);  // Glass panes for number 2
+                        " #### \n     # \n  #### \n #      \n ##### ", seconds);  // Glass panes for number 2
                 break;
             case 1:
                 addNumberGlassPanes(inventory,
@@ -37,7 +38,7 @@ public class InventoryCountdown {
         }
     }
 
-    private void addNumberGlassPanes(Inventory inventory, String number, int countDown) {
+    private void addNumberGlassPanes(@NotNull Inventory inventory, @NotNull String number, int countDown) {
         String[] lines = number.split("\n");
 
         int startRow = (inventory.getSize() / 9 - lines.length) / 2;

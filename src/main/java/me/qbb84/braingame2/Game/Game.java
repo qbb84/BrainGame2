@@ -1,19 +1,16 @@
 package me.qbb84.braingame2.Game;
 
 import me.qbb84.braingame2.Inventory.InventoryItems;
-import org.bukkit.inventory.ItemStack;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 
-public abstract class Game<T extends Game<?>> implements GameData {
+public abstract sealed class Game<T extends Game<?>> implements GameData permits DualNBack, Corsi, CWM, Memory, MentalMath, PASAT {
 
     private final String gameName;
     public final boolean visible;
 
-    public static LinkedHashMap<String, Game> gameCollection;
+    public static LinkedHashMap<String, Game<?>> gameCollection;
     public static LinkedList<InventoryItems> inventoryItems;
 
     static {

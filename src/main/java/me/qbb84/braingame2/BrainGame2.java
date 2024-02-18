@@ -2,7 +2,6 @@ package me.qbb84.braingame2;
 
 import me.qbb84.braingame2.Commands.DualNCommand;
 import me.qbb84.braingame2.Commands.GUICommand;
-import me.qbb84.braingame2.Game.BrainGames.DualNBack;
 import me.qbb84.braingame2.Game.GameManager;
 import me.qbb84.braingame2.Inventory.InventoryEvents;
 import me.qbb84.braingame2.Utils.Color;
