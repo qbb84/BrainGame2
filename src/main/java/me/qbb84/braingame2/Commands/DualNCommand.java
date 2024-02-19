@@ -26,31 +26,15 @@ public class DualNCommand implements CommandExecutor {
             Inventory inventory = Bukkit.createInventory(player, 45, "Get ready!");
 
             player.openInventory(inventory);
-            startCountdown(player, inventory);
+            new InventoryCountdown().startCountdown(player, inventory);
+
+            InventoryEvents.isInInventory.forEach(s1 -> Bukkit.getServer().broadcastMessage(s1.toString()));
+            if (!InventoryEvents.isInInventory.contains(player.getUniqueId())) {
+                InventoryEvents.isInInventory.add(player.getUniqueId());
+            }
             return true;
         }
         return true;
-    }
-
-    private void startCountdown(Player player, Inventory inventory) {
-        new BukkitRunnable() {
-            int seconds = 3;
-
-            @Override
-            public void run() {
-                if (!InventoryEvents.isInInventory.contains(player.getUniqueId())) {cancel(); return;}
-
-                if (seconds > 0) {
-                    InventoryCountdown.getInstance().updateInventory(inventory, seconds);
-                    player.playNote(player.getLocation(), Instrument.PLING, Note.sharp(1, Note.Tone.E));
-                    seconds--;
-                } else {
-                    player.closeInventory();
-                    player.playNote(player.getLocation(), Instrument.PLING, Note.flat(1, Note.Tone.G));
-                    cancel();
-                }
-            }
-        }.runTaskTimer(BrainGame2.getPlugin(), 0, 20);
     }
 
 

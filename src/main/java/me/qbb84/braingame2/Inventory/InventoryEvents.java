@@ -21,7 +21,7 @@ public class InventoryEvents implements Listener {
     @EventHandler
     public void onInventoryClick(@NotNull InventoryClickEvent event) {
         if (event.getCurrentItem() == null || event.getCurrentItem().getItemMeta() == null) return;
-        String title = Color.to("&lGet ready!");
+        String title = "Get ready!";
         if (event.getView().getTitle().equalsIgnoreCase(CustomInventory.brain + CustomInventory.game + CustomInventory.exponent)
         || event.getView().getTitle().equalsIgnoreCase(title)) {
             event.setCancelled(true);
@@ -38,18 +38,21 @@ public class InventoryEvents implements Listener {
 
     @EventHandler
     public void onInventoryOpen(InventoryOpenEvent event) {
+        isInInventory.forEach(s -> Bukkit.getServer().broadcastMessage(s.toString()));
         Player player = (Player) event.getPlayer();
-        if (!isInInventory.contains(player.getUniqueId())) {
-            isInInventory.add(player.getUniqueId());
-        }
+
     }
 
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
         Player player = (Player) event.getPlayer();
+
         if (isInInventory.contains(player.getUniqueId())) {
             isInInventory.remove(event.getPlayer().getUniqueId());
         }
+
+        isInInventory.forEach(s -> Bukkit.getServer().broadcastMessage(s.toString()));
+        Bukkit.broadcastMessage(String.valueOf(isInInventory.size()));
     }
 
 

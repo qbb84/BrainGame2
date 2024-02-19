@@ -1,23 +1,20 @@
 package me.qbb84.braingame2.Utils;
 
+import me.qbb84.braingame2.BrainGame2;
+import me.qbb84.braingame2.Inventory.InventoryEvents;
+import org.bukkit.Instrument;
 import org.bukkit.Material;
+import org.bukkit.Note;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
 public class InventoryCountdown {
 
-    private static  InventoryCountdown INSTANCE = null;
 
-    private InventoryCountdown() {}
-
-    public static InventoryCountdown getInstance() {
-        if (INSTANCE == null) {
-            INSTANCE = new InventoryCountdown();
-        }
-        return INSTANCE;
-    }
+    public InventoryCountdown() {}
 
     public void updateInventory(@NotNull Inventory inventory, int seconds) {
         inventory.clear();
@@ -71,5 +68,26 @@ public class InventoryCountdown {
         }
 
         inventory.setItem(slot, glassPanes);
+    }
+
+    public void startCountdown(Player player, Inventory inventory) {
+        new BukkitRunnable() {
+            int seconds = 3;
+
+            @Override
+            public void run() {
+                if (!InventoryEvents.isInInventory.contains(player.getUniqueId())) {cancel(); return;}
+
+                if (seconds > 0) {
+                    updateInventory(inventory, seconds);
+                    player.playNote(player.getLocation(), Instrument.PLING, Note.sharp(1, Note.Tone.E));
+                    seconds--;
+                } else {
+                    player.closeInventory();
+                    player.playNote(player.getLocation(), Instrument.PLING, Note.flat(1, Note.Tone.G));
+                    cancel();
+                }
+            }
+        }.runTaskTimer(BrainGame2.getPlugin(), 0, 20);
     }
 }

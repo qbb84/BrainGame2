@@ -2,6 +2,8 @@ package me.qbb84.braingame2.Commands;
 
 
 import me.qbb84.braingame2.Game.GameManager;
+import me.qbb84.braingame2.Inventory.InventoryEvents;
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -16,11 +18,8 @@ public class GUICommand implements CommandExecutor {
 
         if (sender instanceof Player player && s.equalsIgnoreCase("braingame")) {
             GameManager.getInstance().openInventory(player);
-
-            player.sendMessage("working!");
             return false;
         }
-
         return true;
     }
 }
