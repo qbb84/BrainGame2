@@ -7,14 +7,21 @@ import org.bukkit.inventory.ItemStack;
 
 public final class PASAT extends Game<PASAT> {
 
+    public static final String commandName;
+    public static final String itemDisplayName;
+
+    static {
+        commandName = "PASAT";
+        itemDisplayName = "PASAT";
+    }
 
     public PASAT() {
-        super(Color.to("PASAT"), true, new InventoryItems("PASAT", Material.COMPASS, Color.to("&6Click to Play!")));
+        super(Color.to(itemDisplayName), true, new InventoryItems(itemDisplayName, Material.COMPASS, Color.to("&6Click to Play!")));
     }
 
     @Override
     public String commandName() {
-        return "PASAT";
+        return commandName;
     }
 
     @Override

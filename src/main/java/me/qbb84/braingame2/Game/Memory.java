@@ -7,13 +7,21 @@ import org.bukkit.inventory.ItemStack;
 
 public final class Memory extends Game<Memory> {
 
+    public static final String commandName;
+    public static final String itemDisplayName;
+
+    static {
+        commandName = "m_span";
+        itemDisplayName = "Memory Span";
+    }
+
     public Memory() {
-            super(Color.to("memory"), true, new InventoryItems("Memory Span", Material.REDSTONE, Color.to("&6Click to Play!")));
+            super(Color.to(itemDisplayName), true, new InventoryItems(itemDisplayName, Material.REDSTONE, Color.to("&6Click to Play!")));
     }
 
     @Override
     public String commandName() {
-        return "memory";
+        return commandName;
     }
 
     @Override

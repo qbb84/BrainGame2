@@ -17,6 +17,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
+
 public class CorsiCommand implements CommandExecutor {
 
     @Override

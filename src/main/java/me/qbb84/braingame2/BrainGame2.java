@@ -1,8 +1,6 @@
 package me.qbb84.braingame2;
 
-import me.qbb84.braingame2.Commands.CorsiCommand;
-import me.qbb84.braingame2.Commands.DualNCommand;
-import me.qbb84.braingame2.Commands.GUICommand;
+import me.qbb84.braingame2.Commands.*;
 import me.qbb84.braingame2.Game.GameManager;
 import me.qbb84.braingame2.Inventory.InventoryEvents;
 import me.qbb84.braingame2.Utils.Color;
@@ -20,6 +18,10 @@ public final class BrainGame2 extends JavaPlugin {
         getCommand("braingame").setExecutor(new GUICommand());
         getCommand("dualnback").setExecutor(new DualNCommand());
         getCommand("corsi").setExecutor(new CorsiCommand());
+        getCommand("cwm").setExecutor(new CWMCommand());
+        getCommand("mm").setExecutor(new MathCommand());
+        getCommand("pasat").setExecutor(new PasatCommand());
+        getCommand("m_span").setExecutor(new MemoryCommand());
         getServer().getPluginManager().registerEvents(new InventoryEvents(), this);
         getServer().getConsoleSender().sendMessage(Color.to("&bBrain Game's neurons are processing..."));
     }

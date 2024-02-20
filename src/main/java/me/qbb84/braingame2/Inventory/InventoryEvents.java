@@ -30,7 +30,6 @@ public class InventoryEvents implements Listener {
 
         for (InventoryItems items : Game.inventoryItems) {
             if (event.getCurrentItem().getItemMeta().getDisplayName().equalsIgnoreCase(items.getItemName())) {
-                Bukkit.getServer().getConsoleSender().sendMessage(items.getItemName());
                 Bukkit.dispatchCommand(event.getWhoClicked(), Game.gameCollection.get(items.getItemName()).commandName());
             }
         }

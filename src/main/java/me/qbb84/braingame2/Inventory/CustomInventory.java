@@ -160,7 +160,7 @@ public class CustomInventory {
     }
 
     private ItemStack getSnakeHeadItem() {
-        return new ItemStack(Material.GREEN_STAINED_GLASS_PANE);
+        return new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
     }
 
     private ItemStack getSnakeBodyItem() {
@@ -168,6 +168,6 @@ public class CustomInventory {
     }
 
     private ItemStack getSnakeTailItem() {
-        return new ItemStack(Material.GREEN_STAINED_GLASS_PANE);
+        return new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
     }
 }
