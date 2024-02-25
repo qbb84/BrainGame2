@@ -2,12 +2,7 @@ package me.qbb84.braingame2.Game;
 
 import me.qbb84.braingame2.Inventory.InventoryItems;
 import me.qbb84.braingame2.Utils.Color;
-import net.minecraft.network.protocol.game.PacketListenerPlayIn;
-import net.minecraft.network.protocol.game.PacketPlayOutEntityDestroy;
-import net.minecraft.server.level.EntityPlayer;
 import org.bukkit.Material;
-import org.bukkit.craftbukkit.v1_20_R1.entity.CraftPlayer;
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 public final class MentalMath extends Game<MentalMath> {

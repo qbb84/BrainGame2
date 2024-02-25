@@ -3,6 +3,8 @@ package me.qbb84.braingame2;
 import me.qbb84.braingame2.Commands.*;
 import me.qbb84.braingame2.Game.GameManager;
 import me.qbb84.braingame2.Inventory.InventoryEvents;
+import me.qbb84.braingame2.Test.GiveChest;
+import me.qbb84.braingame2.Test.TestEvent;
 import me.qbb84.braingame2.Utils.Color;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -22,7 +24,9 @@ public final class BrainGame2 extends JavaPlugin {
         getCommand("mm").setExecutor(new MathCommand());
         getCommand("pasat").setExecutor(new PasatCommand());
         getCommand("m_span").setExecutor(new MemoryCommand());
+        getCommand("chest").setExecutor(new GiveChest());
         getServer().getPluginManager().registerEvents(new InventoryEvents(), this);
+        getServer().getPluginManager().registerEvents(new TestEvent(), this);
         getServer().getConsoleSender().sendMessage(Color.to("&bBrain Game's neurons are processing..."));
     }
 

@@ -1,14 +1,8 @@
 package me.qbb84.braingame2.Utils;
 
-import io.netty.buffer.ByteBuf;
 import me.qbb84.braingame2.BrainGame2;
 import me.qbb84.braingame2.Inventory.GameInventory;
 import me.qbb84.braingame2.Inventory.InventoryEvents;
-import net.minecraft.network.PacketDataSerializer;
-import net.minecraft.network.chat.*;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.level.block.state.BlockBase;
-import net.minecraft.world.phys.Vec3D;
 import org.bukkit.Instrument;
 import org.bukkit.Material;
 import org.bukkit.Note;

@@ -4,7 +4,6 @@ import me.qbb84.braingame2.Game.Corsi;
 import me.qbb84.braingame2.Inventory.GameInventory;
 import me.qbb84.braingame2.Inventory.InventoryEvents;
 import me.qbb84.braingame2.Utils.InventoryCountdown;
-import net.minecraft.world.phys.Vec3D;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
