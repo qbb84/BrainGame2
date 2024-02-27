@@ -4,9 +4,9 @@ import org.bukkit.inventory.ItemStack;
 
 public interface GameData {
 
-    String name();
-    boolean visible();
+  String name();
 
-    ItemStack displayedItem();
+  boolean visible();
 
+  ItemStack displayedItem();
 }

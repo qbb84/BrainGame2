@@ -1,23 +1,22 @@
 package me.qbb84.braingame2.Game;
 
-import me.qbb84.braingame2.Inventory.InventoryItems;
-
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
+import me.qbb84.braingame2.Inventory.InventoryItems;
 
-public abstract sealed class Game<T extends Game<?>> implements GameData permits DualNBack, Corsi, CWM, Memory, MentalMath, PASAT {
-  private final String gameName;
-  public final boolean visible;
-
+public abstract sealed class Game<T extends Game<?>> implements GameData
+    permits DualNBack, Corsi, CWM, Memory, MentalMath, PASAT {
   public static LinkedHashMap<String, Game<?>> gameCollection;
   public static LinkedList<InventoryItems> inventoryItems;
-
-  private T t;
 
   static {
     gameCollection = new LinkedHashMap<>();
     inventoryItems = new LinkedList<>();
   }
+
+  public final boolean visible;
+  private final String gameName;
+  private T t;
 
   public Game(String gameName, boolean visible, InventoryItems items) {
     this.gameName = gameName;

@@ -4,5 +4,5 @@ import net.minecraft.server.level.ServerPlayer;
 
 @FunctionalInterface
 public interface GameInventory {
-    void createGameInventory(ServerPlayer player, String windowTitle);
+  void createGameInventory(ServerPlayer player, String windowTitle);
 }

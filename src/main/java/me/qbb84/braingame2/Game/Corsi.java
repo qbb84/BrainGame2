@@ -9,26 +9,28 @@ import org.bukkit.inventory.ItemStack;
 @CommandWrapper(commandName = "corsi")
 public final class Corsi extends Game<Corsi> {
 
-    public static final String commandName;
-    public static final String itemDisplayName;
+  public static final String commandName;
+  public static final String itemDisplayName;
 
-    static {
-        commandName = "corsi";
-        itemDisplayName = "corsi";
-    }
+  static {
+    commandName = "corsi";
+    itemDisplayName = "corsi";
+  }
 
-    public Corsi() {
-            super(Color.to(itemDisplayName), true, new InventoryItems(itemDisplayName, Material.DIAMOND, Color.to("&6Click to Play!")));
+  public Corsi() {
+    super(
+        Color.to(itemDisplayName),
+        true,
+        new InventoryItems(itemDisplayName, Material.DIAMOND, Color.to("&6Click to Play!")));
+  }
 
-    }
+  @Override
+  public String commandName() {
+    return commandName;
+  }
 
-    @Override
-    public String commandName() {
-        return commandName;
-    }
-
-    @Override
-    public ItemStack displayedItem() {
-        return null;
-    }
+  @Override
+  public ItemStack displayedItem() {
+    return null;
+  }
 }

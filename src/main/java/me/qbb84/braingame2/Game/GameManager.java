@@ -7,7 +7,6 @@ public class GameManager {
 
   private static GameManager INSTANCE = null;
 
-
   private GameManager() {}
 
   public static GameManager getInstance() {
@@ -21,7 +20,7 @@ public class GameManager {
     return new CustomInventory(handler);
   }
 
-  public void initializeItems(){
+  public void initializeItems() {
     new DualNBack();
     new Corsi();
     new CWM();
