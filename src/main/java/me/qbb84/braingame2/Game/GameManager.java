@@ -5,15 +5,21 @@ import org.bukkit.entity.Player;
 
 public class GameManager {
 
-  private static GameManager INSTANCE = null;
+  private static volatile GameManager INSTANCE;
 
   private GameManager() {}
 
   public static GameManager getInstance() {
-    if (INSTANCE == null) {
-      INSTANCE = new GameManager();
+    GameManager result = INSTANCE;
+    if (result == null) {
+      synchronized (GameManager.class) {
+        result = INSTANCE;
+        if (result == null) {
+          INSTANCE = result = new GameManager();
+        }
+      }
     }
-    return INSTANCE;
+    return result;
   }
 
   public CustomInventory openInventory(Player handler) {
