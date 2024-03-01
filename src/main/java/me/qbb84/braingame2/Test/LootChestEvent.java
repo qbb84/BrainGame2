@@ -4,6 +4,7 @@ import com.mojang.authlib.GameProfile;
 import me.qbb84.braingame2.BrainGame2;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.game.ClientboundAddPlayerPacket;
+import net.minecraft.network.protocol.game.ClientboundBlockDestructionPacket;
 import net.minecraft.network.protocol.game.ClientboundBlockEventPacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
 import net.minecraft.server.level.ServerLevel;
@@ -31,13 +32,16 @@ import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 
 public class LootChestEvent {
 
     private final List<Location> trailLocations;
     private final Player player;
-    private double y1, y2, y3;
+    private double y1;
+    private final double y2;
+    private double y3;
 
     public LootChestEvent(Player player) {
         y1 = 0;
@@ -158,7 +162,6 @@ public class LootChestEvent {
                         stand.getLocation().getZ());
 
         stand.getLocation().add(0, 1, 0).getBlock().setType(Material.CHEST);
-        Block chestBlock = stand.getLocation().add(0, 1, 0).getBlock();
 
         stand.setHeadPose(new EulerAngle(0, 0, 0));
         setBlock(stand.getLocation().add(0, 1, 0).getBlock(), Material.CHEST, stand.getFacing());
@@ -169,6 +172,7 @@ public class LootChestEvent {
                 if (y3 == 1) {
                     stand.getWorld().createExplosion(stand.getLocation(), 0);
                     packetOpenChest(stand.getLocation().add(0, 1, 0), player);
+
                     stand.remove();
 
                 } else if (y3 == 2) {
@@ -277,29 +281,27 @@ public class LootChestEvent {
     }
 
     public void spawnCircle(Player player, Location location) {
-        new BukkitRunnable() {
 
-            @Override
-            public void run() {
 
-                for (int degrees = 0; degrees < 360; degrees++) {
-                    var radians = Math.toRadians(degrees);
+        for (int degrees = 0; degrees < 360; degrees++) {
+            var radians = Math.toRadians(degrees);
 
-                    double x = Math.sin(radians), y = Math.cos(radians);
-                    player.spawnParticle(
-                            Particle.DRIPPING_HONEY,
-                            new Location(player.getWorld(), location.getX(), location.getY(), location.getZ())
-                                    .add(x, y2, y),
-                            1);
-                }
-                y2 += 0.10;
+            double x = Math.sin(radians), y = Math.cos(radians);
+            player.spawnParticle(
+                    Particle.WATER_BUBBLE,
+                    new Location(player.getWorld(), location.getX(), location.getY(), location.getZ())
+                            .add(x, 1, y),
+                    1);
 
-                if (y2 >= 2) {
-                    y2 = 0;
-                    this.cancel();
-                }
-            }
-        }.runTaskTimerAsynchronously(BrainGame2.getPlugin(), 0, 10);
+            player.spawnParticle(
+                    Particle.WATER_BUBBLE,
+                    new Location(player.getWorld(), location.getX(), location.getY(), location.getZ())
+                            .add(y, x + 1, 0),
+                    1);
+
+
+        }
+
     }
 
     public void spawnZombieCorpse(Player player, Location spawnLocation) {
@@ -308,6 +310,14 @@ public class LootChestEvent {
                 ((CraftServer) Bukkit.getServer()).getServer(),
                 ((CraftWorld) player.getWorld()).getHandle(),
                 profile);
+
+//        ServerLevel world = ((Level) Bukkit.getServer()).getWorld().getHandle();
+//        net.minecraft.world.entity.Entity giantZombie =
+//                new net.minecraft.world.entity.monster.Giant(net.minecraft.world.entity.EntityType.GIANT, world);
+//
+//
+//        //Giant Entity
+//        ServerEntity giantChestEntity = new ServerEntity(world, giantZombie, 20, true, null, null);
 
 
         var x = spawnLocation.getX();
@@ -323,6 +333,214 @@ public class LootChestEvent {
         connection.connection.send(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER, entity));
         connection.connection.send(new ClientboundAddPlayerPacket(entity));
 
+
+        BlockPos pos1 = new BlockPos((int) x, (int) y + 10, (int) z);
+        BlockPos pos2 = new BlockPos((int) x + 10, (int) y + 10, (int) z + 10);
+        Iterable<BlockPos> blockList = BlockPos.betweenClosed(pos1, pos2);
+
+        ArrayList<BlockPos> blockListToArrayList = new ArrayList<>();
+
+        for (BlockPos pos : blockList) blockListToArrayList.add(pos.immutable());
+
+//        for (BlockPos pos : blockListToArrayList) player.sendMessage(pos.toString());
+
+        int centerX = (pos1.getX() + pos2.getX()) / 2;
+        int centerY = (pos1.getY() + pos2.getY()) / 2;
+        int centerZ = (pos1.getZ() + pos2.getZ()) / 2;
+
+        Location centerLocation = new Location(player.getWorld(), centerX, centerY + 20, centerZ);
+
+        for (BlockPos pos : blockList) {
+            Location blockLocation = new Location(player.getWorld(), pos.getX(), pos.getY(), pos.getZ());
+            player.getWorld().getBlockAt(blockLocation).setType(Material.STONE);
+        }
+
+        Location location = centerLocation.clone().subtract(0, 10, 4);
+        spawnGiantZombie(location.add(1.5, 0, 0));
+
+        ArmorStand progressStand = (ArmorStand) player.getWorld().spawnEntity(centerLocation.clone().subtract(0, 9, 0),
+                EntityType.ARMOR_STAND);
+        progressStand.setVisible(false);
+        progressStand.setGravity(false);
+        progressStand.setCustomName(ChatColor.GREEN + "TEST");
+        progressStand.setCustomNameVisible(true);
+
+        new BukkitRunnable() {
+            int blockUpdate = 1;
+            BlockPos pos = blockListToArrayList.get(new Random().nextInt(blockListToArrayList.size() - 1));
+            int randID = new Random().nextInt(Integer.MAX_VALUE);
+
+            @Override
+            public void run() {
+                Location blockLocation = new Location(player.getWorld(), pos.getX(), pos.getY(), pos.getZ());
+
+                if (blockUpdate >= 9) {
+                    moveBlockTowardCenter(blockLocation, centerLocation, blockLocation);
+                    blockListToArrayList.remove(pos);
+                    if (blockListToArrayList.isEmpty()) {
+                        this.cancel();
+                    }
+                    pos = blockListToArrayList.get(new Random().nextInt(blockListToArrayList.size()));
+                    randID = new Random().nextInt(Integer.MAX_VALUE);
+                    blockUpdate = 1;
+                }
+
+
+                player.sendMessage(pos.getX() + " : " + pos.getY() + " : " + pos.getZ());
+                Block block = player.getWorld().getBlockAt(blockLocation);
+
+                spawnParticlesAroundLocation(blockLocation);
+                connection.connection.send(new ClientboundBlockDestructionPacket(randID, pos,
+                        blockUpdate));
+
+                spawnCircle(player, blockLocation.clone().add(0.5, 0.5, 0.5));
+
+
+                spawnParticleLine(player, block.getLocation().add(0.5, 0.5, 0.5), centerLocation,
+                        Particle.ELECTRIC_SPARK);
+
+
+                player.getWorld().playSound(new Location(player.getWorld(), pos.getX(), pos.getY(), pos.getZ()),
+                        Sound.BLOCK_STONE_BREAK, 1, 1);
+                blockUpdate++;
+            }
+        }.runTaskTimer(BrainGame2.getPlugin(), 0, 3);
+
+
+//        Function<Integer, Integer> addition = (a, b) -> a + b;
+
         //TODO Convert to server entity
     }
+
+    private void spawnParticleLine(Player player, Location start, Location end, Particle particle) {
+        int points = 15;
+        double intervalX = (end.getX() - start.getX()) / points;
+        double intervalY = (end.getY() - start.getY()) / points;
+        double intervalZ = (end.getZ() - start.getZ()) / points;
+
+        for (int i = 0; i < points; i++) {
+            double x = start.getX() + (i + 0.5) * intervalX;  // Adjusted to center of interval
+            double y = start.getY() + (i + 0.5) * intervalY;  // Adjusted to center of interval
+            double z = start.getZ() + (i + 0.5) * intervalZ;  // Adjusted to center of interval
+
+            player.getWorld().spawnParticle(particle, x, y, z, 1, 0, 0, 0, 0);
+        }
+    }
+
+    public void spawnParticlesAroundLocation(Location location) {
+        double angle = Math.random() * 2 * Math.PI;
+        double radius = 0.3;
+        double x = radius * Math.cos(angle);
+        double z = radius * Math.sin(angle);
+
+        double particleHeight = Math.random() * 0.5;
+        Location particleLocation =
+                new Location(
+                        location.getWorld(),
+                        location.getX() + x,
+                        location.getY() + 1 + particleHeight,
+                        location.getZ() + z);
+        location.getWorld().spawnParticle(Particle.CRIT, particleLocation, 5);
+
+
+    }
+
+    public void spawnGiantZombie(Location location) {
+        Giant giant = (Giant) location.getWorld().spawnEntity(location,
+                EntityType.GIANT);
+
+
+        giant.setAI(false);
+        giant.setInvisible(true);
+        giant.setCollidable(false);
+        giant.setInvulnerable(true);
+        giant.getEquipment().setItemInMainHand(new ItemStack(Material.CHEST));
+        giant.setSilent(true);
+
+        giant.setCustomName("YOOOOOOOOO");
+        giant.setCustomNameVisible(true);
+
+    }
+
+
+    private org.bukkit.block.BlockFace getFacingDirection(Location from, Location to) {
+        double deltaX = to.getX() - from.getX();
+        double deltaZ = to.getZ() - from.getZ();
+
+        double angle = Math.toDegrees(Math.atan2(deltaZ, deltaX)) + 180;
+
+        if (0 <= angle && angle < 45) {
+            return org.bukkit.block.BlockFace.EAST;
+        } else if (45 <= angle && angle < 135) {
+            return org.bukkit.block.BlockFace.SOUTH;
+        } else if (135 <= angle && angle < 225) {
+            return org.bukkit.block.BlockFace.WEST;
+        } else {
+            return org.bukkit.block.BlockFace.NORTH;
+        }
+    }
+
+
+    private void moveBlockTowardCenter(Location particleLocation, Location start, Location end) {
+        Block block = particleLocation.getBlock();
+
+        double duration = 18.0;  // Adjust this value based on the desired movement speed
+        int ticks = 60;  // Number of ticks (1 second = 20 ticks)
+        double interval = duration / ticks;
+
+        Vector direction = start.toVector().subtract(end.toVector()).normalize();
+        Vector step = direction.clone().multiply(interval);
+
+        Location currentLocation = particleLocation.clone();
+
+
+        ArmorStand armorStand = particleLocation.getWorld().spawn(currentLocation, ArmorStand.class);
+        armorStand.setInvisible(true);
+        armorStand.setGravity(false);
+        armorStand.setMarker(true);
+
+        armorStand.setHelmet(new ItemStack(Material.STONE));
+
+
+        new BukkitRunnable() {
+            int tickCount = 0;
+
+            final int particlesToSpawn = 60;
+            int particlesSpawned = 0;
+
+            @Override
+            public void run() {
+                currentLocation.add(step);
+
+                if (++particlesSpawned <= particlesToSpawn) {
+                    Location particleLineLocation = currentLocation.clone().subtract(0.1, 0, 0.0);
+                    particleLineLocation.getWorld().spawnParticle(Particle.SMOKE_NORMAL, particleLineLocation, 1, 0
+                            , 0, 0,
+                            0);
+                }
+
+                end.getBlock().setType(Material.AIR);
+
+                float rotation = (float) (360 * tickCount / ticks);
+                armorStand.setHeadPose(new EulerAngle(Math.toRadians(rotation), Math.toRadians(rotation), 0));
+
+                armorStand.teleport(currentLocation);
+
+                currentLocation.getWorld().playSound(currentLocation, Sound.BLOCK_NOTE_BLOCK_HARP, 1, 1);
+
+
+                if (++tickCount >= ticks) {
+                    // Ensure the final location is set correctly
+                    end.getBlock().getWorld().playSound(player, Sound.BLOCK_NOTE_BLOCK_PLING, 1, 1);
+                    end.getBlock().setType(block.getType());
+
+                    // Remove the ArmorStand
+                    armorStand.remove();
+
+                    cancel();
+                }
+            }
+        }.runTaskTimer(BrainGame2.getPlugin(), 0, 1);  // Run the task every tick for smoother animation
+    }
+
 }
