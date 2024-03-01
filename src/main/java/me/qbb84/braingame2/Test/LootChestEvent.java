@@ -34,6 +34,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class LootChestEvent {
 
@@ -42,6 +44,18 @@ public class LootChestEvent {
     private double y1;
     private final double y2;
     private double y3;
+
+    int finishedIteration = 0;
+
+
+    private static final Supplier<Integer> randomToMax = () -> (int) (Math.random() * Integer.MAX_VALUE);
+    private static final Function<Integer, Double> randomTo = i -> Math.random() * i;
+
+    private ArmorStand progressStand;
+    private ArrayList<BlockPos> blockListToArrayList;
+
+    private final ArrayList<Integer> progressBarSize = new ArrayList<>();
+    private static int size = 0;
 
     public LootChestEvent(Player player) {
         y1 = 0;
@@ -162,6 +176,7 @@ public class LootChestEvent {
                         stand.getLocation().getZ());
 
         stand.getLocation().add(0, 1, 0).getBlock().setType(Material.CHEST);
+        Block block = stand.getWorld().getBlockAt(stand.getLocation().add(0, 1, 0));
 
         stand.setHeadPose(new EulerAngle(0, 0, 0));
         setBlock(stand.getLocation().add(0, 1, 0).getBlock(), Material.CHEST, stand.getFacing());
@@ -194,7 +209,8 @@ public class LootChestEvent {
                     location.setDirection(new Vector(3, 4, 10));
                     giant.teleport(location);
 
-                    spawnZombieCorpse(player, stand.getLocation().add(1.5, -5, 4.5));
+                    spawnZombieCorpse(player, stand.getLocation().add(1.5, -5, 4.5), block.getLocation().add(0.5, 0.5
+                            , 0.5));
 
                 }
                 y3++;
@@ -304,7 +320,7 @@ public class LootChestEvent {
 
     }
 
-    public void spawnZombieCorpse(Player player, Location spawnLocation) {
+    public void spawnZombieCorpse(Player player, Location spawnLocation, Location chestLocation) {
         GameProfile profile = new GameProfile(UUID.randomUUID(), player.getName());
         ServerPlayer entity = new ServerPlayer(
                 ((CraftServer) Bukkit.getServer()).getServer(),
@@ -334,13 +350,19 @@ public class LootChestEvent {
         connection.connection.send(new ClientboundAddPlayerPacket(entity));
 
 
-        BlockPos pos1 = new BlockPos((int) x, (int) y + 10, (int) z);
-        BlockPos pos2 = new BlockPos((int) x + 10, (int) y + 10, (int) z + 10);
+        int size1 = 10;
+        int height = 10;
+        BlockPos pos1 = new BlockPos((int) x - size1 / 2, (int) y + 10, (int) z - size1 / 2);
+        BlockPos pos2 = new BlockPos((int) x + size1 / 2, (int) y + 10, (int) z + size1 / 2);
         Iterable<BlockPos> blockList = BlockPos.betweenClosed(pos1, pos2);
 
-        ArrayList<BlockPos> blockListToArrayList = new ArrayList<>();
 
-        for (BlockPos pos : blockList) blockListToArrayList.add(pos.immutable());
+        blockListToArrayList = new ArrayList<>();
+
+        for (BlockPos pos : blockList) {
+            blockListToArrayList.add(pos.immutable());
+            size++;
+        }
 
 //        for (BlockPos pos : blockListToArrayList) player.sendMessage(pos.toString());
 
@@ -350,19 +372,49 @@ public class LootChestEvent {
 
         Location centerLocation = new Location(player.getWorld(), centerX, centerY + 20, centerZ);
 
-        for (BlockPos pos : blockList) {
-            Location blockLocation = new Location(player.getWorld(), pos.getX(), pos.getY(), pos.getZ());
-            player.getWorld().getBlockAt(blockLocation).setType(Material.STONE);
-        }
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                BlockPos pos = blockListToArrayList.get(finishedIteration);
+                Location blockLocation = new Location(player.getWorld(), pos.getX(), pos.getY(), pos.getZ());
+                player.getWorld().getBlockAt(blockLocation).setType(Material.STONE);
+                spawnParticleLine(player, chestLocation, blockLocation, Particle.ELECTRIC_SPARK);
+                spawnParticlesAroundLocation(blockLocation, Particle.ELECTRIC_SPARK);
+                spawnParticlesAroundLocation(chestLocation, Particle.ELECTRIC_SPARK);
+                player.getWorld().playSound(blockLocation, Sound.BLOCK_STONE_PLACE, 1, 1);
+                finishedIteration++;
+                if (finishedIteration >= size) {
+
+                    for (BlockPos pos1 : blockList) {
+                        Location blockLoc = new Location(player.getWorld(), pos1.getX(), pos1.getY(), pos1.getZ());
+                        spawnParticlesAroundLocation(blockLoc, Particle.VILLAGER_HAPPY);
+                    }
+                    player.getWorld().playSound(blockLocation, Sound.BLOCK_NOTE_BLOCK_BASS, 1, 1);
+                    executeSecondRunnable(player, centerLocation, blockListToArrayList, connection);
+                    cancel();
+                }
+
+            }
+        }.runTaskTimer(BrainGame2.getPlugin(), 0, 2);
+
+
+    }
+
+
+    private void executeSecondRunnable(Player player, Location centerLocation, List<BlockPos> blockListToArrayList,
+                                       ServerPlayer connection) {
+        player.getWorld().playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1, 1);
 
         Location location = centerLocation.clone().subtract(0, 10, 4);
         spawnGiantZombie(location.add(1.5, 0, 0));
 
-        ArmorStand progressStand = (ArmorStand) player.getWorld().spawnEntity(centerLocation.clone().subtract(0, 9, 0),
+        progressStand = (ArmorStand) player.getWorld().spawnEntity(centerLocation.clone().subtract(0, 9, 0),
                 EntityType.ARMOR_STAND);
         progressStand.setVisible(false);
         progressStand.setGravity(false);
-        progressStand.setCustomName(ChatColor.GREEN + "TEST");
+        double percentageComplete = (double) progressBarSize.size() / size;
+        progressStand.setCustomName(getProgressBar(percentageComplete));
         progressStand.setCustomNameVisible(true);
 
         new BukkitRunnable() {
@@ -385,31 +437,23 @@ public class LootChestEvent {
                     blockUpdate = 1;
                 }
 
-
                 player.sendMessage(pos.getX() + " : " + pos.getY() + " : " + pos.getZ());
                 Block block = player.getWorld().getBlockAt(blockLocation);
 
-                spawnParticlesAroundLocation(blockLocation);
+                spawnParticlesAroundLocation(blockLocation, Particle.ELECTRIC_SPARK);
                 connection.connection.send(new ClientboundBlockDestructionPacket(randID, pos,
                         blockUpdate));
 
                 spawnCircle(player, blockLocation.clone().add(0.5, 0.5, 0.5));
 
-
                 spawnParticleLine(player, block.getLocation().add(0.5, 0.5, 0.5), centerLocation,
                         Particle.ELECTRIC_SPARK);
-
 
                 player.getWorld().playSound(new Location(player.getWorld(), pos.getX(), pos.getY(), pos.getZ()),
                         Sound.BLOCK_STONE_BREAK, 1, 1);
                 blockUpdate++;
             }
         }.runTaskTimer(BrainGame2.getPlugin(), 0, 3);
-
-
-//        Function<Integer, Integer> addition = (a, b) -> a + b;
-
-        //TODO Convert to server entity
     }
 
     private void spawnParticleLine(Player player, Location start, Location end, Particle particle) {
@@ -427,7 +471,9 @@ public class LootChestEvent {
         }
     }
 
-    public void spawnParticlesAroundLocation(Location location) {
+
+    public void spawnParticlesAroundLocation(Location location, Particle particle) {
+        location.clone().add(0.5, 0, 0.5);
         double angle = Math.random() * 2 * Math.PI;
         double radius = 0.3;
         double x = radius * Math.cos(angle);
@@ -440,7 +486,7 @@ public class LootChestEvent {
                         location.getX() + x,
                         location.getY() + 1 + particleHeight,
                         location.getZ() + z);
-        location.getWorld().spawnParticle(Particle.CRIT, particleLocation, 5);
+        location.getWorld().spawnParticle(particle, particleLocation, 5);
 
 
     }
@@ -534,6 +580,15 @@ public class LootChestEvent {
                     end.getBlock().getWorld().playSound(player, Sound.BLOCK_NOTE_BLOCK_PLING, 1, 1);
                     end.getBlock().setType(block.getType());
 
+                    progressBarSize.add(1);
+
+                    double percentageComplete = (double) progressBarSize.size() / size;
+                    Bukkit.broadcastMessage(progressBarSize.size() + " / " + size);
+                    progressStand.setCustomName(getProgressBar(percentageComplete));
+
+                    spawnParticlesInDirections(start.clone().subtract(0, 2, 0), 2, Particle.VILLAGER_HAPPY);
+
+
                     // Remove the ArmorStand
                     armorStand.remove();
 
@@ -541,6 +596,40 @@ public class LootChestEvent {
                 }
             }
         }.runTaskTimer(BrainGame2.getPlugin(), 0, 1);  // Run the task every tick for smoother animation
+    }
+
+    private void spawnParticlesInDirections(Location location, double spread, Particle particle) {
+        int particleCount = 50;
+
+        for (int i = 0; i < particleCount; i++) {
+            double offsetX = (Math.random() * 2 - 1) * spread;
+            double offsetY = Math.random() * spread;
+            double offsetZ = (Math.random() * 2 - 1) * spread;
+
+            location.getWorld().spawnParticle(particle, location.getX() + offsetX,
+                    location.getY() + offsetY,
+                    location.getZ() + offsetZ, 1, 0, 0, 0, 0);
+        }
+    }
+
+    private String getProgressBar(double percentage) {
+        int bars = 10;
+        int progress = (int) (percentage * 100 / bars);
+        int remaining = bars - progress;
+
+        StringBuilder progressBar = new StringBuilder(ChatColor.GOLD + "" + ChatColor.BOLD + "[");
+        for (int i = 0; i < progress; i++) {
+            progressBar.append(ChatColor.GREEN + "█");
+        }
+        for (int i = 0; i < remaining; i++) {
+            progressBar.append(ChatColor.RED + "░");
+        }
+        progressBar.append(ChatColor.RESET).append(ChatColor.GOLD + "" + ChatColor.BOLD + "] ");
+
+        // Display percentage
+        progressBar.append(ChatColor.GOLD + "" + ChatColor.BOLD + String.format("%.2f%%", percentage * 100));
+
+        return progressBar.toString();
     }
 
 }
