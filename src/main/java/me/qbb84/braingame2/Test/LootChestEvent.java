@@ -34,8 +34,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class LootChestEvent {
 
@@ -50,11 +52,14 @@ public class LootChestEvent {
 
     private static final Supplier<Integer> randomToMax = () -> (int) (Math.random() * Integer.MAX_VALUE);
     private static final Function<Integer, Double> randomTo = i -> Math.random() * i;
+    private static final BiFunction<Player, BlockPos, Location> locationFromBlockPos =
+            (p, l) -> new Location(p.getWorld(), l.getX(), l.getY(), l.getZ());
 
     private ArmorStand progressStand;
     private ArrayList<BlockPos> blockListToArrayList;
 
     private final ArrayList<Integer> progressBarSize = new ArrayList<>();
+    private List<BlockPos> newListWithoutAirBlocks;
     private static int size = 0;
 
     public LootChestEvent(Player player) {
@@ -406,6 +411,8 @@ public class LootChestEvent {
                                        ServerPlayer connection) {
         player.getWorld().playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1, 1);
 
+        List<BlockPos> blockListClone = new ArrayList<>(blockListToArrayList.stream().toList());
+
         Location location = centerLocation.clone().subtract(0, 10, 4);
         spawnGiantZombie(location.add(1.5, 0, 0));
 
@@ -417,27 +424,77 @@ public class LootChestEvent {
         progressStand.setCustomName(getProgressBar(percentageComplete));
         progressStand.setCustomNameVisible(true);
 
+        newListWithoutAirBlocks = blockListClone.stream()
+                .filter(pos -> locationFromBlockPos.apply(player, pos).getBlock().getType() != Material.AIR)
+                .toList();
+
         new BukkitRunnable() {
             int blockUpdate = 1;
-            BlockPos pos = blockListToArrayList.get(new Random().nextInt(blockListToArrayList.size() - 1));
+            BlockPos pos = newListWithoutAirBlocks.get(new Random().nextInt(newListWithoutAirBlocks.size()));
             int randID = new Random().nextInt(Integer.MAX_VALUE);
+
 
             @Override
             public void run() {
                 Location blockLocation = new Location(player.getWorld(), pos.getX(), pos.getY(), pos.getZ());
 
+
                 if (blockUpdate >= 9) {
                     moveBlockTowardCenter(blockLocation, centerLocation, blockLocation);
-                    blockListToArrayList.remove(pos);
-                    if (blockListToArrayList.isEmpty()) {
+                    connection.connection.send(new ClientboundBlockDestructionPacket(randID, pos,
+                            -1));
+
+                    blockLocation.getBlock().setType(Material.AIR);
+
+
+                    if (newListWithoutAirBlocks.size() == 1) {
                         this.cancel();
                     }
-                    pos = blockListToArrayList.get(new Random().nextInt(blockListToArrayList.size()));
+
+                    List<Material> materials = new ArrayList<>(blockListClone.stream()
+                            .map(pos -> player.getWorld().getBlockAt(new Location(
+                                            player.getWorld(),
+                                            pos.getX(),
+                                            pos.getY(),
+                                            pos.getZ()))
+                                    .getType())
+                            .collect(Collectors.toList()));
+
+
+                    List<Material> rotatedMaterials = rotateList(materials, materials.size() / 2);
+
+                    for (BlockPos pos : blockListClone) {
+                        Block block = player.getWorld().getBlockAt(new Location(
+                                player.getWorld(),
+                                pos.getX(),
+                                pos.getY(),
+                                pos.getZ()));
+                        block.setType(Material.AIR);
+                    }
+
+                    blockListToArrayList.clear();
+                    blockListToArrayList.addAll(rotateList(blockListClone, blockListClone.size() / 2));
+
+                    for (int i = 0; i < blockListClone.size(); i++) {
+                        BlockPos pos = blockListClone.get(i);
+                        Block block = player.getWorld().getBlockAt(new Location(
+                                player.getWorld(),
+                                pos.getX(),
+                                pos.getY(),
+                                pos.getZ()));
+                        block.setType(rotatedMaterials.get(i));
+                    }
+
+                    newListWithoutAirBlocks = blockListClone.stream()
+                            .filter(pos -> locationFromBlockPos.apply(player, pos).getBlock().getType() != Material.AIR)
+                            .toList();
+                    player.sendMessage(String.valueOf(newListWithoutAirBlocks.size()));
+                    pos = newListWithoutAirBlocks.get(new Random().nextInt(newListWithoutAirBlocks.size()));
                     randID = new Random().nextInt(Integer.MAX_VALUE);
                     blockUpdate = 1;
-                }
 
-                player.sendMessage(pos.getX() + " : " + pos.getY() + " : " + pos.getZ());
+
+                }
                 Block block = player.getWorld().getBlockAt(blockLocation);
 
                 spawnParticlesAroundLocation(blockLocation, Particle.ELECTRIC_SPARK);
@@ -565,10 +622,11 @@ public class LootChestEvent {
                             0);
                 }
 
-                end.getBlock().setType(Material.AIR);
+//                end.getBlock().setType(Material.AIR);
 
                 float rotation = (float) (360 * tickCount / ticks);
                 armorStand.setHeadPose(new EulerAngle(Math.toRadians(rotation), Math.toRadians(rotation), 0));
+
 
                 armorStand.teleport(currentLocation);
 
@@ -578,13 +636,13 @@ public class LootChestEvent {
                 if (++tickCount >= ticks) {
                     // Ensure the final location is set correctly
                     end.getBlock().getWorld().playSound(player, Sound.BLOCK_NOTE_BLOCK_PLING, 1, 1);
-                    end.getBlock().setType(block.getType());
 
                     progressBarSize.add(1);
 
                     double percentageComplete = (double) progressBarSize.size() / size;
-                    Bukkit.broadcastMessage(progressBarSize.size() + " / " + size);
                     progressStand.setCustomName(getProgressBar(percentageComplete));
+
+                    player.sendMessage(progressBarSize.size() + " / " + size);
 
                     spawnParticlesInDirections(start.clone().subtract(0, 2, 0), 2, Particle.VILLAGER_HAPPY);
 
@@ -630,6 +688,26 @@ public class LootChestEvent {
         progressBar.append(ChatColor.GOLD + "" + ChatColor.BOLD + String.format("%.2f%%", percentage * 100));
 
         return progressBar.toString();
+    }
+
+    private static <T> List<T> rotateList(List<T> list, int k) {
+        List<T> rotated = new ArrayList<>(list.size());
+
+        for (int i = 0; i < list.size(); i++) {
+            rotated.add(list.get((i + k) % list.size()));
+        }
+
+        return rotated;
+    }
+
+    private static int[] shiftArray(int[] arr, int k) {
+        int[] shifted = new int[arr.length];
+
+        for (int i = 0; i < arr.length; i++) {
+            shifted[(i + k) % arr.length] = arr[i];
+        }
+
+        return shifted;
     }
 
 }
