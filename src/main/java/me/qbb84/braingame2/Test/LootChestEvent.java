@@ -3,10 +3,8 @@ package me.qbb84.braingame2.Test;
 import com.mojang.authlib.GameProfile;
 import me.qbb84.braingame2.BrainGame2;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.protocol.game.ClientboundAddPlayerPacket;
 import net.minecraft.network.protocol.game.ClientboundBlockDestructionPacket;
 import net.minecraft.network.protocol.game.ClientboundBlockEventPacket;
-import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -28,12 +26,14 @@ import org.bukkit.entity.*;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.EulerAngle;
+import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -51,7 +51,7 @@ public class LootChestEvent {
 
 
     private static final Supplier<Integer> randomToMax = () -> (int) (Math.random() * Integer.MAX_VALUE);
-    private static final Function<Integer, Double> randomTo = i -> Math.random() * i;
+    private static final Function<Integer, Double> randomToX = i -> Math.random() * i;
     private static final BiFunction<Player, BlockPos, Location> locationFromBlockPos =
             (p, l) -> new Location(p.getWorld(), l.getX(), l.getY(), l.getZ());
 
@@ -62,6 +62,8 @@ public class LootChestEvent {
     private List<BlockPos> newListWithoutAirBlocks;
     private static int size = 0;
 
+    private List<ItemStack> chestContents;
+
     public LootChestEvent(Player player) {
         y1 = 0;
         y2 = 0;
@@ -69,15 +71,21 @@ public class LootChestEvent {
 
         this.player = player;
         trailLocations = new ArrayList<>();
+
+//        Arrays.stream(LootChestInventory.getGetLootChestInventory().get(player.getUniqueId()).getContents())
+//        .forEach(itemStack -> chestContents.add(itemStack));
     }
 
     public void start(ItemStack item) {
+        chestContents = new ArrayList<>();
         player.playSound(player.getLocation(), Sound.ENTITY_ENDER_PEARL_THROW, 1, 1);
 
         Egg chestEgg = player.launchProjectile(Egg.class);
+
         chestEgg.setItem(item);
         chestEgg.setBounce(false);
         chestEgg.setInvulnerable(true);
+
 
         new BukkitRunnable() {
 
@@ -257,19 +265,12 @@ public class LootChestEvent {
     }
 
     private static Axis convertBlockFaceToAxis(BlockFace face) {
-        switch (face) {
-            case NORTH:
-            case SOUTH:
-                return Axis.Z;
-            case EAST:
-            case WEST:
-                return Axis.X;
-            case UP:
-            case DOWN:
-                return Axis.Y;
-            default:
-                return Axis.X;
-        }
+        return switch (face) {
+            case NORTH, SOUTH -> Axis.Z;
+            case EAST, WEST -> Axis.X;
+            case UP, DOWN -> Axis.Y;
+            default -> Axis.X;
+        };
     }
 
     public void playChestAction(Location location, boolean open) {
@@ -351,12 +352,13 @@ public class LootChestEvent {
 
         ServerPlayer connection = ((CraftPlayer) player).getHandle();
 
-        connection.connection.send(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER, entity));
-        connection.connection.send(new ClientboundAddPlayerPacket(entity));
+
+        var size1 = 10;
+        AtomicInteger height = new AtomicInteger();
+
+        LootChestInventory.getGetLootChestInventory().get(player.getUniqueId()).forEach(item -> height.addAndGet(item.getAmount()));
 
 
-        int size1 = 10;
-        int height = 10;
         BlockPos pos1 = new BlockPos((int) x - size1 / 2, (int) y + 10, (int) z - size1 / 2);
         BlockPos pos2 = new BlockPos((int) x + size1 / 2, (int) y + 10, (int) z + size1 / 2);
         Iterable<BlockPos> blockList = BlockPos.betweenClosed(pos1, pos2);
@@ -377,20 +379,22 @@ public class LootChestEvent {
 
         Location centerLocation = new Location(player.getWorld(), centerX, centerY + 20, centerZ);
 
+        List<ItemStack> inputtedItems = LootChestInventory.getGetLootChestInventory().get(player.getUniqueId());
+
 
         new BukkitRunnable() {
             @Override
             public void run() {
                 BlockPos pos = blockListToArrayList.get(finishedIteration);
                 Location blockLocation = new Location(player.getWorld(), pos.getX(), pos.getY(), pos.getZ());
-                player.getWorld().getBlockAt(blockLocation).setType(Material.STONE);
+                blockLocation.getBlock().setType(getNextItemInChest(player, inputtedItems).getType());
                 spawnParticleLine(player, chestLocation, blockLocation, Particle.ELECTRIC_SPARK);
                 spawnParticlesAroundLocation(blockLocation, Particle.ELECTRIC_SPARK);
                 spawnParticlesAroundLocation(chestLocation, Particle.ELECTRIC_SPARK);
                 player.getWorld().playSound(blockLocation, Sound.BLOCK_STONE_PLACE, 1, 1);
+
                 finishedIteration++;
                 if (finishedIteration >= size) {
-
                     for (BlockPos pos1 : blockList) {
                         Location blockLoc = new Location(player.getWorld(), pos1.getX(), pos1.getY(), pos1.getZ());
                         spawnParticlesAroundLocation(blockLoc, Particle.VILLAGER_HAPPY);
@@ -461,7 +465,7 @@ public class LootChestEvent {
                             .collect(Collectors.toList()));
 
 
-                    List<Material> rotatedMaterials = rotateList(materials, materials.size() / 2);
+                    List<Material> rotatedMaterials = Rotation.rotateList(materials, Rotation._90_DEGREES_RIGHT);
 
                     for (BlockPos pos : blockListClone) {
                         Block block = player.getWorld().getBlockAt(new Location(
@@ -473,7 +477,7 @@ public class LootChestEvent {
                     }
 
                     blockListToArrayList.clear();
-                    blockListToArrayList.addAll(rotateList(blockListClone, blockListClone.size() / 2));
+                    blockListToArrayList.addAll(Rotation.rotateList(blockListClone, Rotation._90_DEGREES_RIGHT));
 
                     for (int i = 0; i < blockListClone.size(); i++) {
                         BlockPos pos = blockListClone.get(i);
@@ -597,7 +601,8 @@ public class LootChestEvent {
         Location currentLocation = particleLocation.clone();
 
 
-        ArmorStand armorStand = particleLocation.getWorld().spawn(currentLocation, ArmorStand.class);
+        ArmorStand armorStand = particleLocation.getWorld().spawn(currentLocation.add(0.5, 0, 0.5),
+                ArmorStand.class);
         armorStand.setInvisible(true);
         armorStand.setGravity(false);
         armorStand.setMarker(true);
@@ -656,6 +661,7 @@ public class LootChestEvent {
         }.runTaskTimer(BrainGame2.getPlugin(), 0, 1);  // Run the task every tick for smoother animation
     }
 
+
     private void spawnParticlesInDirections(Location location, double spread, Particle particle) {
         int particleCount = 50;
 
@@ -708,6 +714,78 @@ public class LootChestEvent {
         }
 
         return shifted;
+    }
+
+    private ItemStack getNextItemInChest(Player player, List<ItemStack> itemStacks) {
+        ItemStack found_item = null;
+        for (ItemStack item : itemStacks) {
+            found_item = item;
+            break;
+        }
+
+        var deduction = found_item.getAmount() - 1;
+        if (deduction > 1) {
+            List<ItemStack> new_list = new ArrayList<>(itemStacks);
+            new_list.remove(found_item);
+            found_item.setAmount(deduction);
+            new_list.add(found_item);
+
+            LootChestInventory.getGetLootChestInventory().put(player.getUniqueId(), new_list);
+        } else {
+            List<ItemStack> new_list = new ArrayList<>(itemStacks);
+            new_list.remove(found_item);
+            LootChestInventory.getGetLootChestInventory().put(player.getUniqueId(), new_list);
+            return found_item;
+        }
+        return found_item;
+    }
+
+
+    public static Location rayTraceToNearestUnoccupiedBlockOfType(Location blockLocation, Material targetType) {
+        World world = blockLocation.getWorld();
+        double radius = 5;
+        int numPoints = 36;
+
+        Location nearestUnoccupiedBlock = null;
+        double nearestDistanceSquared = Double.MAX_VALUE;
+
+        for (int i = 0; i < numPoints; i++) {
+            double angle = 2 * Math.PI * i / numPoints;
+            double xOffset = radius * Math.cos(angle);
+            double zOffset = radius * Math.sin(angle);
+
+            Vector direction = new Vector(xOffset, 0, zOffset);
+            Location startLocation = blockLocation.clone().add(0.5, 0.5, 0.5).add(direction);
+
+            RayTraceResult result = world.rayTrace(
+                    startLocation,
+                    new Vector(0, -1, 0),
+                    10,
+                    FluidCollisionMode.ALWAYS,
+                    true,
+                    0.2,
+                    null);
+
+            world.spawnParticle(Particle.VILLAGER_HAPPY, startLocation, 1);
+
+            if (result != null && result.getHitBlock() != null && result.getHitBlock().getType() == targetType) {
+                double distanceSquared = blockLocation.distanceSquared(result.getHitBlock().getLocation());
+
+                // Check if the current hit block is unoccupied
+                if (!result.getHitBlock().getLocation().getBlock().isPassable()) {
+                    if (distanceSquared < nearestDistanceSquared) {
+                        nearestDistanceSquared = distanceSquared;
+                        nearestUnoccupiedBlock = result.getHitBlock().getLocation().add(0.5, 0.5, 0.5);
+                    }
+                }
+            }
+        }
+
+        return nearestUnoccupiedBlock;
+    }
+
+    public boolean isSquare(int amount) {
+        return Math.cbrt(amount) == (int) Math.cbrt(amount) || Math.sqrt(amount) == (int) Math.sqrt(amount);
     }
 
 }
