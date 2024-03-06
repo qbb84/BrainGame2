@@ -3,6 +3,7 @@ package me.qbb84.braingame2.Test;
 import com.mojang.authlib.GameProfile;
 import me.qbb84.braingame2.BrainGame2;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.protocol.game.ClientboundAnimatePacket;
 import net.minecraft.network.protocol.game.ClientboundBlockDestructionPacket;
 import net.minecraft.network.protocol.game.ClientboundBlockEventPacket;
 import net.minecraft.server.level.ServerLevel;
@@ -22,8 +23,10 @@ import org.bukkit.block.data.Rotatable;
 import org.bukkit.craftbukkit.v1_20_R1.CraftServer;
 import org.bukkit.craftbukkit.v1_20_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_20_R1.entity.CraftPlayer;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.*;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.EulerAngle;
 import org.bukkit.util.RayTraceResult;
@@ -153,6 +156,11 @@ public class LootChestEvent {
                     angleNew += rotationSpeed;
                     stand.setRotation(angleNew, (float) angle);
                 }
+
+                ((CraftPlayer) player).getHandle().connection.send(new ClientboundAnimatePacket(
+                        ((CraftPlayer) player).getHandle(),
+                        1
+                ));
 
                 Location chestLocation = stand.getLocation();
                 double particleHeight = Math.random() * 0.5;
@@ -379,14 +387,13 @@ public class LootChestEvent {
 
         Location centerLocation = new Location(player.getWorld(), centerX, centerY + 20, centerZ);
 
-        List<ItemStack> inputtedItems = LootChestInventory.getGetLootChestInventory().get(player.getUniqueId());
-
 
         new BukkitRunnable() {
             @Override
             public void run() {
                 BlockPos pos = blockListToArrayList.get(finishedIteration);
                 Location blockLocation = new Location(player.getWorld(), pos.getX(), pos.getY(), pos.getZ());
+                List<ItemStack> inputtedItems = LootChestInventory.getGetLootChestInventory().get(player.getUniqueId());
                 blockLocation.getBlock().setType(getNextItemInChest(player, inputtedItems).getType());
                 spawnParticleLine(player, chestLocation, blockLocation, Particle.ELECTRIC_SPARK);
                 spawnParticlesAroundLocation(blockLocation, Particle.ELECTRIC_SPARK);
@@ -467,6 +474,10 @@ public class LootChestEvent {
 
                     List<Material> rotatedMaterials = Rotation.rotateList(materials, Rotation._90_DEGREES_RIGHT);
 
+                    player.sendMessage("Before Rotation:");
+                    player.sendMessage("Positions: " + blockListClone);
+                    player.sendMessage("Materials: " + materials);
+
                     for (BlockPos pos : blockListClone) {
                         Block block = player.getWorld().getBlockAt(new Location(
                                 player.getWorld(),
@@ -478,6 +489,10 @@ public class LootChestEvent {
 
                     blockListToArrayList.clear();
                     blockListToArrayList.addAll(Rotation.rotateList(blockListClone, Rotation._90_DEGREES_RIGHT));
+
+                    player.sendMessage("After Rotation:");
+                    player.sendMessage("Rotated Positions: " + blockListClone);
+                    player.sendMessage("Rotated Materials: " + rotatedMaterials);
 
                     for (int i = 0; i < blockListClone.size(); i++) {
                         BlockPos pos = blockListClone.get(i);
@@ -524,9 +539,9 @@ public class LootChestEvent {
         double intervalZ = (end.getZ() - start.getZ()) / points;
 
         for (int i = 0; i < points; i++) {
-            double x = start.getX() + (i + 0.5) * intervalX;  // Adjusted to center of interval
-            double y = start.getY() + (i + 0.5) * intervalY;  // Adjusted to center of interval
-            double z = start.getZ() + (i + 0.5) * intervalZ;  // Adjusted to center of interval
+            double x = start.getX() + (i + 0.5) * intervalX;
+            double y = start.getY() + (i + 0.5) * intervalY;
+            double z = start.getZ() + (i + 0.5) * intervalZ;
 
             player.getWorld().spawnParticle(particle, x, y, z, 1, 0, 0, 0, 0);
         }
@@ -587,9 +602,39 @@ public class LootChestEvent {
         }
     }
 
+    public Material temp_converstion(Material item) {
+        switch (item) {
+            case REDSTONE_ORE -> {
+                return Material.REDSTONE;
+            }
+            case DIAMOND_ORE -> {
+                return Material.DIAMOND;
+            }
+            case IRON_ORE -> {
+                return Material.IRON_INGOT;
+            }
+            case GOLD_ORE -> {
+                return Material.GOLD_INGOT;
+            }
+            case COPPER_ORE -> {
+                return Material.COPPER_INGOT;
+            }
+            case DEEPSLATE_EMERALD_ORE -> {
+                return Material.EMERALD;
+            }
+
+        }
+        return null;
+    }
+
 
     private void moveBlockTowardCenter(Location particleLocation, Location start, Location end) {
         Block block = particleLocation.getBlock();
+        ItemStack blockItem = new ItemStack(temp_converstion(block.getType()));
+        ItemMeta im = blockItem.getItemMeta();
+        im.addEnchant(Enchantment.ARROW_DAMAGE, 1, true);
+        blockItem.setItemMeta(im);
+
 
         double duration = 18.0;  // Adjust this value based on the desired movement speed
         int ticks = 60;  // Number of ticks (1 second = 20 ticks)
@@ -607,7 +652,7 @@ public class LootChestEvent {
         armorStand.setGravity(false);
         armorStand.setMarker(true);
 
-        armorStand.setHelmet(new ItemStack(Material.STONE));
+        armorStand.setHelmet(blockItem);
 
 
         new BukkitRunnable() {
@@ -717,11 +762,11 @@ public class LootChestEvent {
     }
 
     private ItemStack getNextItemInChest(Player player, List<ItemStack> itemStacks) {
-        ItemStack found_item = null;
-        for (ItemStack item : itemStacks) {
-            found_item = item;
-            break;
-        }
+        ItemStack found_item = itemStacks.get(0);
+//        for (ItemStack item : itemStacks) {
+//            found_item = item;
+//            break;
+//        }
 
         var deduction = found_item.getAmount() - 1;
         if (deduction > 1) {
