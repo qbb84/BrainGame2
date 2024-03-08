@@ -17,7 +17,9 @@ public enum Rotation {
     @Getter
     private static int listSize;
 
-    public static <T> List<T> rotateList(List<T> originalList, me.qbb84.braingame2.Test.Rotation rotation) {
+    public static <T> List<T> rotateList(List<T> originalList, Rotation rotation) {
+        rotation.setListSize(originalList, rotation);
+
         int size = originalList.size();
         int steps = rotation.getDegrees();
         int normalizedSteps = (steps % size + size) % size;
@@ -31,12 +33,16 @@ public enum Rotation {
     }
 
 
-    public static void setListSize(int size) {
-        listSize = size;
+    private void setListSize(List<?> list, Rotation rotation) {
+        int size = list.size();
 
-        _90_DEGREES_RIGHT.degrees = size - 1;
-        _90_DEGREES_LEFT.degrees = 1;
-        _180_DEGREES.degrees = size / 2;
+        switch (rotation) {
+            case _180_DEGREES -> _180_DEGREES.degrees = size / 2;
+            case _90_DEGREES_LEFT -> _90_DEGREES_LEFT.degrees = 1;
+            case _90_DEGREES_RIGHT -> _90_DEGREES_RIGHT.degrees = size - 1;
+        }
+
+
     }
 
 
